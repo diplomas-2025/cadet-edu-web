@@ -5,43 +5,115 @@ import {
     Typography,
     Paper,
     Box,
-    List,
-    ListItem,
-    ListItemText,
+    Grid,
     Button,
     Link,
-    DialogActions,
     Dialog,
     DialogTitle,
     Avatar,
     IconButton,
     DialogContent,
+    DialogActions,
+    Card,
+    CardContent,
+    CardActionArea,
+    Divider,
+    Chip,
+    CircularProgress,
+    Tabs,
+    Tab
 } from '@mui/material';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { createTheme, ThemeProvider, styled } from '@mui/material/styles';
 import {
     getAllTests,
     getCourseById,
     getLessons,
     getMaterials,
     getTestResults,
-    getTestResultsById, isTeacher,
+    getTestResultsById,
+    isTeacher
 } from '../data/Api';
-import { Quiz as TestIcon, Close as CloseIcon, Add as AddIcon } from '@mui/icons-material';
+import {
+    Quiz as TestIcon,
+    Close as CloseIcon,
+    Add as AddIcon,
+    Book as BookIcon,
+    School as LessonIcon,
+    Assignment as AssignmentIcon,
+    Email as EmailIcon,
+    Group as GroupIcon,
+    Person as TeacherIcon,
+    Download as DownloadIcon,
+    BarChart as ResultsIcon
+} from '@mui/icons-material';
 
-// Создаем кастомную тему
+// Используем единую тему
 const theme = createTheme({
     palette: {
         primary: {
-            main: '#6a1b9a', // Фиолетовый
+            main: '#1a3e72',
+            light: '#4d6ea8',
         },
         secondary: {
-            main: '#ffab40', // Оранжевый
+            main: '#d32f2f',
+        },
+        background: {
+            default: '#f8f9fa',
+            paper: '#ffffff',
         },
     },
     typography: {
-        fontFamily: 'Roboto, sans-serif',
+        fontFamily: '"Roboto", "Arial", sans-serif',
+        h4: {
+            fontWeight: 700,
+        },
+        h5: {
+            fontWeight: 600,
+        },
+        body1: {
+            fontSize: '1rem',
+        },
+    },
+    shape: {
+        borderRadius: 12,
     },
 });
+
+// Стилизованные компоненты
+const StyledCard = styled(Card)(({ theme }) => ({
+    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+    '&:hover': {
+        transform: 'translateY(-4px)',
+        boxShadow: theme.shadows[6],
+    },
+}));
+
+export const StyledButton = styled(Button)(({ theme }) => ({
+    fontWeight: 600,
+    letterSpacing: '0.5px',
+    padding: '10px 20px',
+    borderRadius: theme.shape.borderRadius,
+}));
+
+const SectionHeader = ({ title, icon, action }) => (
+    <Box sx={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        mb: 3,
+        borderBottom: '2px solid',
+        borderColor: 'divider',
+        pb: 2
+    }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {React.createElement(icon, { color: 'primary' })}
+            <Typography variant="h5" component="h2" sx={{ fontWeight: 600 }}>
+                {title}
+            </Typography>
+        </Box>
+        {action}
+    </Box>
+);
 
 export const AssignmentDetails = () => {
     const { assignmentId } = useParams();
@@ -52,298 +124,398 @@ export const AssignmentDetails = () => {
     const [testsData, setTestsData] = useState([]);
     const [test, setTest] = useState(null);
     const [testResult, setTestResult] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState(0);
 
     // Загрузка данных
     useEffect(() => {
-        getAllTests(assignmentId).then((response) => {
-            setTestsData(response.data);
-        });
-        getLessons(assignmentId).then((response) => {
-            setLessonsData(response.data);
-        });
-        getMaterials(assignmentId).then((response) => {
-            setMaterialsData(response.data);
-        });
-        getCourseById(assignmentId).then((response) => {
-            setAssignmentData(response.data);
-        });
-    }, [assignmentId]);
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const [course, materials, lessons, tests] = await Promise.all([
+                    getCourseById(assignmentId),
+                    getMaterials(assignmentId),
+                    getLessons(assignmentId),
+                    getAllTests(assignmentId)
+                ]);
 
-    if (!assignmentData) {
-        return <Typography>Загрузка...</Typography>;
-    }
+                setAssignmentData(course.data);
+                setMaterialsData(materials.data);
+                setLessonsData(lessons.data);
+                setTestsData(tests.data);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [assignmentId]);
 
     const handleClose = () => {
         setTest(null);
+        setTestResult(null);
     };
+
+    const handleTabChange = (event, newValue) => {
+        setActiveTab(newValue);
+    };
+
+    if (loading) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
+                <CircularProgress size={60} />
+            </Box>
+        );
+    }
+
+    if (!assignmentData) {
+        return <Typography>Курс не найден</Typography>;
+    }
 
     return (
         <ThemeProvider theme={theme}>
-            <Container maxWidth="md">
-                {/* Информация о назначении */}
-                <Paper elevation={6} sx={{ p: 3, mt: 2, borderRadius: '16px', backgroundColor: '#f5f5f5' }}>
-                    <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#6a1b9a' }}>
-                        {assignmentData.subject.name}
-                    </Typography>
-                    <Box sx={{ mt: 2 }}>
-                        <Typography variant="body1" sx={{ color: '#333' }}>
-                            Группа: {assignmentData.group.name}
-                        </Typography>
-                        <Typography variant="body1" sx={{ color: '#333' }}>
-                            Преподаватель: {assignmentData.instructor.fullName}
-                        </Typography>
-                        <Typography variant="body1" sx={{ color: '#333' }}>
-                            Email преподавателя: {assignmentData.instructor.email}
-                        </Typography>
-                    </Box>
+            <Container maxWidth="lg" sx={{ py: 4 }}>
+                {/* Информация о курсе */}
+                <StyledCard sx={{ mb: 4 }}>
+                    <CardContent sx={{ p: 4 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                            <BookIcon sx={{ fontSize: 40, color: 'primary.main', mr: 2 }} />
+                            <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
+                                {assignmentData.subject.name}
+                            </Typography>
+                        </Box>
+
+                        <Grid container spacing={3} sx={{ mb: 2 }}>
+                            <Grid item xs={12} md={4}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                    <GroupIcon color="primary" />
+                                    <Typography variant="body1">
+                                        <Box component="span" sx={{ fontWeight: 600 }}>Группа:</Box> {assignmentData.group.name}
+                                    </Typography>
+                                </Box>
+                            </Grid>
+
+                            <Grid item xs={12} md={4}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                    <TeacherIcon color="primary" />
+                                    <Typography variant="body1">
+                                        <Box component="span" sx={{ fontWeight: 600 }}>Преподаватель:</Box> {assignmentData.instructor.fullName}
+                                    </Typography>
+                                </Box>
+                            </Grid>
+
+                            <Grid item xs={12} md={4}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                    <EmailIcon color="primary" />
+                                    <Typography variant="body1">
+                                        <Box component="span" sx={{ fontWeight: 600 }}>Email:</Box> {assignmentData.instructor.email}
+                                    </Typography>
+                                </Box>
+                            </Grid>
+                        </Grid>
+                    </CardContent>
+                </StyledCard>
+
+                {/* Табы для разделов */}
+                <Paper sx={{ mb: 3, borderRadius: theme.shape.borderRadius }}>
+                    <Tabs
+                        value={activeTab}
+                        onChange={handleTabChange}
+                        variant="scrollable"
+                        scrollButtons="auto"
+                    >
+                        <Tab label="Материалы" icon={<AssignmentIcon />} iconPosition="start" />
+                        <Tab label="Уроки" icon={<LessonIcon />} iconPosition="start" />
+                        <Tab label="Тесты" icon={<TestIcon />} iconPosition="start" />
+                    </Tabs>
                 </Paper>
 
-                {/* Материалы */}
-                <Paper elevation={6} sx={{ p: 3, mt: 4, borderRadius: '16px', backgroundColor: '#f5f5f5' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                        <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#6a1b9a' }}>
-                            Материалы
-                        </Typography>
-                        { isTeacher() &&
-                            <Button
-                                variant="contained"
-                                color="primary"
-                                startIcon={<AddIcon />}
-                                onClick={() => navigate(`/assignments/${assignmentId}/add-material`)}
-                                sx={{ borderRadius: '8px', fontWeight: 'bold' }}
-                            >
-                                Добавить материал
-                            </Button>
-                        }
-                    </Box>
-                    <List>
-                        {materialsData.map((material) => (
-                            <ListItem
-                                key={material.id}
-                                sx={{
-                                    mb: 2,
-                                    borderRadius: '8px',
-                                    backgroundColor: '#ffffff',
-                                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                                    '&:hover': {
-                                        boxShadow: '0 6px 8px rgba(0, 0, 0, 0.2)',
-                                    },
-                                }}
-                            >
-                                <ListItemText
-                                    primary={
-                                        <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#6a1b9a' }}>
-                                            {material.title}
-                                        </Typography>
-                                    }
-                                    secondary={
-                                        <Box sx={{ mt: 1 }}>
-                                            <Typography variant="body1" sx={{ color: '#333' }}>
-                                                Дата создания: {new Date(material.createdAt).toLocaleDateString()}
-                                            </Typography>
-                                            <Link href={material.fileUrl} target="_blank" rel="noopener">
-                                                <Button variant="contained" color="primary" sx={{ mt: 1 }}>
-                                                    Открыть
-                                                </Button>
-                                            </Link>
-                                        </Box>
-                                    }
-                                />
-                            </ListItem>
-                        ))}
-                    </List>
-                </Paper>
+                {/* Содержимое табов */}
+                <Box sx={{ mb: 6 }}>
+                    {/* Материалы */}
+                    {activeTab === 0 && (
+                        <>
+                            <SectionHeader
+                                title="Материалы курса"
+                                icon={AssignmentIcon}
+                                action={isTeacher() && (
+                                    <StyledButton
+                                        variant="contained"
+                                        color="primary"
+                                        startIcon={<AddIcon />}
+                                        onClick={() => navigate(`/assignments/${assignmentId}/add-material`)}
+                                    >
+                                        Добавить материал
+                                    </StyledButton>
+                                )}
+                            />
 
-                {/* Уроки */}
-                <Paper elevation={6} sx={{ p: 3, mt: 4, borderRadius: '16px', backgroundColor: '#f5f5f5' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                        <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#6a1b9a' }}>
-                            Уроки
-                        </Typography>
-                        { isTeacher() &&
-                            <Button
-                                variant="contained"
-                                color="primary"
-                                startIcon={<AddIcon />}
-                                onClick={() => navigate(`/assignments/${assignmentId}/add-lesson`)}
-                                sx={{ borderRadius: '8px', fontWeight: 'bold' }}
-                            >
-                                Добавить урок
-                            </Button>
-                        }
-                    </Box>
-                    <List>
-                        {lessonsData.map((lesson) => (
-                            <ListItem
-                                key={lesson.id}
-                                sx={{
-                                    mb: 2,
-                                    borderRadius: '8px',
-                                    backgroundColor: '#ffffff',
-                                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                                    '&:hover': {
-                                        boxShadow: '0 6px 8px rgba(0, 0, 0, 0.2)',
-                                    },
-                                }}
-                                onClick={() => navigate(`/assignments/${assignmentId}/lessons/${lesson.id}`)}
-                            >
-                                <ListItemText
-                                    primary={
-                                        <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#6a1b9a' }}>
-                                            {lesson.title}
-                                        </Typography>
-                                    }
-                                />
-                            </ListItem>
-                        ))}
-                    </List>
-                </Paper>
+                            {materialsData.length === 0 ? (
+                                <Paper sx={{ p: 4, textAlign: 'center', borderRadius: theme.shape.borderRadius }}>
+                                    <Typography variant="body1" color="textSecondary">
+                                        Материалы не добавлены
+                                    </Typography>
+                                </Paper>
+                            ) : (
+                                <Grid container spacing={3}>
+                                    {materialsData.map((material) => (
+                                        <Grid item xs={12} sm={6} md={4} key={material.id}>
+                                            <StyledCard>
+                                                <CardContent sx={{ p: 3 }}>
+                                                    <Typography variant="h6" component="h3" gutterBottom sx={{ fontWeight: 600 }}>
+                                                        {material.title}
+                                                    </Typography>
 
-                {/* Тесты */}
-                <Paper elevation={6} sx={{ p: 3, mt: 4, borderRadius: '16px', backgroundColor: '#f5f5f5' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                        <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#6a1b9a' }}>
-                            Тесты
-                        </Typography>
-                        { isTeacher() &&
-                            <>
-                                <Button
-                                    variant="contained"
-                                    color="primary"
-                                    onClick={() => navigate(`/assignments/${assignmentId}/result`)}
-                                    sx={{ borderRadius: '8px', fontWeight: 'bold' }}
-                                >
-                                    Результаты
-                                </Button>
+                                                    <Chip
+                                                        label={new Date(material.createdAt).toLocaleDateString()}
+                                                        size="small"
+                                                        sx={{ mb: 2 }}
+                                                    />
 
-                                <Button
-                                    variant="contained"
-                                    color="primary"
-                                    startIcon={<AddIcon />}
-                                    onClick={() => navigate(`/assignments/${assignmentId}/add-test`)}
-                                    sx={{ borderRadius: '8px', fontWeight: 'bold' }}
-                                >
-                                    Добавить тест
-                                </Button>
-                            </>
-                        }
-                    </Box>
-                    <List>
-                        {testsData.map((test) => (
-                            <ListItem
-                                key={test.id}
-                                sx={{
-                                    mb: 2,
-                                    borderRadius: '8px',
-                                    backgroundColor: '#ffffff',
-                                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                                    '&:hover': {
-                                        boxShadow: '0 6px 8px rgba(0, 0, 0, 0.2)',
-                                    },
-                                }}
-                            >
-                                <ListItemText
-                                    primary={
-                                        <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#6a1b9a' }}>
-                                            {test.title}
-                                        </Typography>
-                                    }
-                                    secondary={
-                                        <Box sx={{ mt: 1 }}>
-                                            <Button
-                                                variant="contained"
-                                                color="primary"
-                                                onClick={() => {
-                                                    getTestResultsById(test.id)
-                                                        .then((response) => {
-                                                            setTestResult(response.data);
-                                                            setTest(test);
-                                                        })
-                                                        .catch(() => {
-                                                            setTest(test);
-                                                        });
-                                                }}
-                                            >
-                                                Начать тест
-                                            </Button>
-                                        </Box>
-                                    }
-                                />
-                            </ListItem>
-                        ))}
-                    </List>
-                </Paper>
+                                                    <Divider sx={{ my: 2 }} />
+
+                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <Link href={material.fileUrl} target="_blank" rel="noopener" underline="none">
+                                                            <Button
+                                                                variant="outlined"
+                                                                color="primary"
+                                                                startIcon={<DownloadIcon />}
+                                                                size="small"
+                                                            >
+                                                                Скачать
+                                                            </Button>
+                                                        </Link>
+                                                    </Box>
+                                                </CardContent>
+                                            </StyledCard>
+                                        </Grid>
+                                    ))}
+                                </Grid>
+                            )}
+                        </>
+                    )}
+
+                    {/* Уроки */}
+                    {activeTab === 1 && (
+                        <>
+                            <SectionHeader
+                                title="Уроки курса"
+                                icon={LessonIcon}
+                                action={isTeacher() && (
+                                    <StyledButton
+                                        variant="contained"
+                                        color="primary"
+                                        startIcon={<AddIcon />}
+                                        onClick={() => navigate(`/assignments/${assignmentId}/add-lesson`)}
+                                    >
+                                        Добавить урок
+                                    </StyledButton>
+                                )}
+                            />
+
+                            {lessonsData.length === 0 ? (
+                                <Paper sx={{ p: 4, textAlign: 'center', borderRadius: theme.shape.borderRadius }}>
+                                    <Typography variant="body1" color="textSecondary">
+                                        Уроки не добавлены
+                                    </Typography>
+                                </Paper>
+                            ) : (
+                                <Grid container spacing={3}>
+                                    {lessonsData.map((lesson) => (
+                                        <Grid item xs={12} sm={6} md={4} key={lesson.id}>
+                                            <StyledCard onClick={() => navigate(`/assignments/${assignmentId}/lessons/${lesson.id}`)}>
+                                                <CardActionArea>
+                                                    <CardContent sx={{ p: 3, height: '100%' }}>
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                                            <LessonIcon color="primary" sx={{ mr: 1 }} />
+                                                            <Typography variant="h6" component="h3" sx={{ fontWeight: 600 }}>
+                                                                {lesson.title}
+                                                            </Typography>
+                                                        </Box>
+
+                                                        {lesson.description && (
+                                                            <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                                                                {lesson.description.length > 100
+                                                                    ? `${lesson.description.substring(0, 100)}...`
+                                                                    : lesson.description}
+                                                            </Typography>
+                                                        )}
+
+                                                        <Divider sx={{ my: 2 }} />
+
+                                                        <Typography variant="caption" color="textSecondary">
+                                                            Нажмите для просмотра
+                                                        </Typography>
+                                                    </CardContent>
+                                                </CardActionArea>
+                                            </StyledCard>
+                                        </Grid>
+                                    ))}
+                                </Grid>
+                            )}
+                        </>
+                    )}
+
+                    {/* Тесты */}
+                    {activeTab === 2 && (
+                        <>
+                            <SectionHeader
+                                title="Тесты курса"
+                                icon={TestIcon}
+                                action={isTeacher() && (
+                                    <Box sx={{ display: 'flex', gap: 2 }}>
+                                        <StyledButton
+                                            variant="outlined"
+                                            color="primary"
+                                            startIcon={<ResultsIcon />}
+                                            onClick={() => navigate(`/assignments/${assignmentId}/result`)}
+                                        >
+                                            Результаты
+                                        </StyledButton>
+                                        <StyledButton
+                                            variant="contained"
+                                            color="primary"
+                                            startIcon={<AddIcon />}
+                                            onClick={() => navigate(`/assignments/${assignmentId}/add-test`)}
+                                        >
+                                            Добавить тест
+                                        </StyledButton>
+                                    </Box>
+                                )}
+                            />
+
+                            {testsData.length === 0 ? (
+                                <Paper sx={{ p: 4, textAlign: 'center', borderRadius: theme.shape.borderRadius }}>
+                                    <Typography variant="body1" color="textSecondary">
+                                        Тесты не добавлены
+                                    </Typography>
+                                </Paper>
+                            ) : (
+                                <Grid container spacing={3}>
+                                    {testsData.map((testItem) => (
+                                        <Grid item xs={12} sm={6} md={4} key={testItem.id}>
+                                            <StyledCard>
+                                                <CardContent sx={{ p: 3 }}>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                                        <TestIcon color="primary" sx={{ mr: 1 }} />
+                                                        <Typography variant="h6" component="h3" sx={{ fontWeight: 600 }}>
+                                                            {testItem.title}
+                                                        </Typography>
+                                                    </Box>
+
+                                                    {testItem.description && (
+                                                        <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                                                            {testItem.description.length > 100
+                                                                ? `${testItem.description.substring(0, 100)}...`
+                                                                : testItem.description}
+                                                        </Typography>
+                                                    )}
+
+                                                    <Divider sx={{ my: 2 }} />
+
+                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <Button
+                                                            variant="contained"
+                                                            color="primary"
+                                                            size="small"
+                                                            onClick={() => {
+                                                                getTestResultsById(testItem.id)
+                                                                    .then((response) => {
+                                                                        setTestResult(response.data);
+                                                                        setTest(testItem);
+                                                                    })
+                                                                    .catch(() => {
+                                                                        setTest(testItem);
+                                                                    });
+                                                            }}
+                                                        >
+                                                            {testResult ? 'Посмотреть' : 'Начать тест'}
+                                                        </Button>
+                                                    </Box>
+                                                </CardContent>
+                                            </StyledCard>
+                                        </Grid>
+                                    ))}
+                                </Grid>
+                            )}
+                        </>
+                    )}
+                </Box>
 
                 {/* Диалог для теста */}
                 <Dialog
                     open={test != null}
                     onClose={handleClose}
+                    fullWidth
+                    maxWidth="sm"
                     PaperProps={{
                         sx: {
-                            borderRadius: 3,
-                            boxShadow: 6,
-                            minWidth: '400px',
+                            borderRadius: 5,
+                            boxShadow: theme.shadows[10],
                         },
                     }}
                 >
                     <DialogTitle>
                         <Box display="flex" alignItems="center" justifyContent="space-between">
-                            <Box display="flex" alignItems="center">
-                                <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                            <Box display="flex" alignItems="center" gap={2}>
+                                <Avatar sx={{ bgcolor: 'primary.main' }}>
                                     <TestIcon />
                                 </Avatar>
                                 <Typography variant="h6" fontWeight="bold">
-                                    {test != null ? test.title : ''}
+                                    {test?.title}
                                 </Typography>
                             </Box>
-                            <IconButton onClick={handleClose} size="small">
+                            <IconButton onClick={handleClose}>
                                 <CloseIcon />
                             </IconButton>
                         </Box>
                     </DialogTitle>
-                    <DialogContent>
-                        <Paper elevation={0} sx={{ p: 2, borderRadius: 2, bgcolor: 'background.paper' }}>
-                            <Typography variant="body1" paragraph>
-                                {test != null ? test.description : ''}
-                            </Typography>
-                            {testResult != null && (
-                                <Box
-                                    sx={{
-                                        bgcolor: 'primary.light',
-                                        p: 2,
-                                        borderRadius: 2,
-                                        textAlign: 'center',
-                                    }}
-                                >
-                                    <Typography variant="h6" fontWeight="bold" color="primary.contrastText">
-                                        Ваш результат: {testResult.score}
-                                    </Typography>
-                                </Box>
-                            )}
-                        </Paper>
+
+                    <DialogContent dividers>
+                        <Typography variant="body1" paragraph>
+                            {test?.description}
+                        </Typography>
+
+                        {testResult && (
+                            <Box
+                                sx={{
+                                    bgcolor: 'primary.light',
+                                    p: 3,
+                                    borderRadius: theme.shape.borderRadius,
+                                    textAlign: 'center',
+                                    mb: 2,
+                                }}
+                            >
+                                <Typography variant="h5" fontWeight="bold" color="primary.contrastText">
+                                    Ваш результат: {testResult.score}%
+                                </Typography>
+                            </Box>
+                        )}
                     </DialogContent>
-                    <DialogActions sx={{ p: 2 }}>
+
+                    <DialogActions sx={{ p: 3 }}>
                         <Button
                             onClick={handleClose}
                             color="secondary"
                             variant="outlined"
-                            sx={{ borderRadius: 2 }}
+                            sx={{ borderRadius: theme.shape.borderRadius }}
                         >
-                            Отмена
+                            Закрыть
                         </Button>
                         <Button
-                            disabled={testResult != null}
-                            onClick={() => navigate(`/test/${test.id}`)}
+                            onClick={() => navigate(`/test/${test?.id}`)}
                             color="primary"
                             variant="contained"
-                            sx={{ borderRadius: 2 }}
+                            sx={{ borderRadius: theme.shape.borderRadius }}
+                            disabled={!!testResult}
                         >
-                            Начать тест
+                            {testResult ? 'Тест пройден' : 'Начать тест'}
                         </Button>
                     </DialogActions>
                 </Dialog>
             </Container>
-            <div style={{ height: '100px' }} />
         </ThemeProvider>
     );
 };

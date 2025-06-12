@@ -1,37 +1,74 @@
 import React, { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { Container, Typography, TextField, Button, Box, Paper, Avatar } from '@mui/material';
+import { Container, Typography, TextField, Button, Box, Paper, Grid, CssBaseline, Avatar, Divider } from '@mui/material';
 import { signIn } from '../data/Api';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { createTheme, ThemeProvider, styled } from '@mui/material/styles';
+import MilitaryTechIcon from '@mui/icons-material/MilitaryTech';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 
-// Создаем кастомную тему
+// Используем ту же тему, что и в SignUp для единообразия
 const theme = createTheme({
     palette: {
         primary: {
-            main: '#6a1b9a', // Фиолетовый
+            main: '#1a3e72', // Темно-синий
+            light: '#4d6ea8',
         },
         secondary: {
-            main: '#ffab40', // Оранжевый
+            main: '#d32f2f', // Красный
+        },
+        background: {
+            default: '#f8f9fa',
         },
     },
     typography: {
-        fontFamily: 'Roboto, sans-serif',
-        h3: {
-            fontWeight: 'bold',
-            fontSize: '2.5rem',
-            color: '#6a1b9a',
-        },
+        fontFamily: '"Roboto", "Arial", sans-serif',
         h4: {
-            fontWeight: 'bold',
+            fontWeight: 700,
             fontSize: '1.8rem',
-            color: '#6a1b9a',
         },
+        h5: {
+            fontWeight: 600,
+        },
+        body1: {
+            fontSize: '1rem',
+        },
+    },
+    shape: {
+        borderRadius: 12,
     },
 });
 
+// Стилизованные компоненты
+const StyledPaper = styled(Paper)(({ theme }) => ({
+    padding: theme.spacing(4),
+    borderRadius: theme.shape.borderRadius * 2,
+    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+    background: 'linear-gradient(to bottom, #ffffff, #f8f9fa)',
+    maxWidth: 500,
+    margin: '0 auto',
+}));
+
+const StyledButton = styled(Button)(({ theme }) => ({
+    padding: '12px 24px',
+    fontWeight: 600,
+    letterSpacing: '0.5px',
+    textTransform: 'uppercase',
+    transition: 'all 0.3s ease',
+}));
+
+const StyledTextField = styled(TextField)(({ theme }) => ({
+    '& .MuiOutlinedInput-root': {
+        '& fieldset': {
+            borderColor: theme.palette.primary.light,
+        },
+        '&:hover fieldset': {
+            borderColor: theme.palette.primary.main,
+        },
+    },
+}));
+
 export const SignIn = () => {
     const navigate = useNavigate();
-
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -45,9 +82,10 @@ export const SignIn = () => {
             localStorage.setItem('userId', response.data.userId);
             localStorage.setItem('role', response.data.role);
             window.location.reload();
+            setIsAuthenticated(true);
             setError('');
         } catch (err) {
-            setError('Ошибка при входе. Проверьте email и пароль.');
+            setError('Неверные учетные данные. Пожалуйста, проверьте email и пароль.');
         }
     };
 
@@ -57,101 +95,151 @@ export const SignIn = () => {
 
     return (
         <ThemeProvider theme={theme}>
-            <Container maxWidth="sm">
-                {/* Логотип и название техникума */}
-                <Box sx={{ mt: 4, textAlign: 'center' }}>
-                    <Typography variant="h4" gutterBottom>
-                        Ташлинский политехнический техникум
+            <CssBaseline />
+            <Container maxWidth="md" sx={{ py: 6 }}>
+                <Box textAlign="center" mb={6}>
+                    <MilitaryTechIcon sx={{
+                        fontSize: 60,
+                        color: theme.palette.primary.main,
+                        mb: 2
+                    }} />
+                    <Typography
+                        variant="h4"
+                        component="h1"
+                        gutterBottom
+                        sx={{
+                            fontWeight: 700,
+                            color: theme.palette.primary.main,
+                        }}
+                    >
+                        ФГКОУ "Самарский кадетский корпус МВД России"
+                    </Typography>
+                    <Typography variant="h5" color="textSecondary">
+                        Система дополнительного образования
                     </Typography>
                 </Box>
 
-                {/* Форма входа */}
-                <Paper
-                    elevation={6}
-                    sx={{
-                        p: 4,
-                        mt: 2,
-                        borderRadius: '16px',
-                        backgroundColor: '#f5f5f5', // Однотонный светло-серый цвет
-                    }}
-                >
-                    <Typography variant="h4" align="center" gutterBottom>
-                        Вход
-                    </Typography>
-                    <form onSubmit={handleSubmit}>
-                        <TextField
-                            label="Email"
-                            fullWidth
-                            margin="normal"
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                            sx={{ mb: 2 }}
-                            InputProps={{
-                                sx: { borderRadius: '8px' },
-                            }}
-                        />
-                        <TextField
-                            label="Пароль"
-                            fullWidth
-                            margin="normal"
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                            sx={{ mb: 2 }}
-                            InputProps={{
-                                sx: { borderRadius: '8px' },
-                            }}
-                        />
-                        {error && (
-                            <Typography color="error" sx={{ mt: 2, textAlign: 'center' }}>
-                                {error}
-                            </Typography>
-                        )}
-                        <Box sx={{ mt: 2 }}>
-                            <Button
-                                type="submit"
-                                variant="contained"
-                                color="primary"
-                                fullWidth
-                                sx={{
-                                    borderRadius: '8px',
-                                    padding: '12px',
-                                    fontSize: '16px',
-                                    fontWeight: 'bold',
-                                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                                    '&:hover': {
-                                        boxShadow: '0 6px 8px rgba(0, 0, 0, 0.2)',
-                                    },
-                                }}
-                            >
-                                Войти
-                            </Button>
-                        </Box>
-                        <Box sx={{ mt: 2, textAlign: 'center' }}>
-                            <Typography variant="body2" sx={{ color: '#666' }}>
-                                Нет аккаунта?{' '}
-                                <Button
-                                    color="secondary"
-                                    onClick={() => navigate('/signup')}
+                <Grid container justifyContent="center">
+                    <Grid item xs={12} sm={10} md={8}>
+                        <StyledPaper elevation={0}>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                <Avatar sx={{
+                                    m: 1,
+                                    bgcolor: theme.palette.secondary.main,
+                                    width: 56,
+                                    height: 56
+                                }}>
+                                    <LockOutlinedIcon fontSize="medium" />
+                                </Avatar>
+
+                                <Typography
+                                    component="h2"
+                                    variant="h4"
                                     sx={{
-                                        textTransform: 'none',
-                                        fontSize: '14px',
-                                        fontWeight: 'bold',
+                                        mt: 2,
+                                        mb: 4,
+                                        color: theme.palette.primary.main,
+                                        position: 'relative',
+                                        '&:after': {
+                                            content: '""',
+                                            display: 'block',
+                                            width: '60px',
+                                            height: '4px',
+                                            background: theme.palette.secondary.main,
+                                            margin: '16px auto 0',
+                                            borderRadius: '2px',
+                                        }
+                                    }}
+                                >
+                                    Вход в систему
+                                </Typography>
+                            </Box>
+
+                            <form onSubmit={handleSubmit}>
+                                <StyledTextField
+                                    label="Электронная почта"
+                                    fullWidth
+                                    margin="normal"
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    required
+                                    sx={{ mb: 3 }}
+                                    InputProps={{
+                                        sx: { borderRadius: theme.shape.borderRadius },
+                                    }}
+                                />
+
+                                <StyledTextField
+                                    label="Пароль"
+                                    fullWidth
+                                    margin="normal"
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                    sx={{ mb: 3 }}
+                                    InputProps={{
+                                        sx: { borderRadius: theme.shape.borderRadius },
+                                    }}
+                                />
+
+                                {error && (
+                                    <Typography
+                                        color="error"
+                                        align="center"
+                                        sx={{
+                                            mt: 2,
+                                            mb: 2,
+                                            padding: 1,
+                                            backgroundColor: 'rgba(211, 47, 47, 0.1)',
+                                            borderRadius: theme.shape.borderRadius,
+                                        }}
+                                    >
+                                        {error}
+                                    </Typography>
+                                )}
+
+                                <StyledButton
+                                    type="submit"
+                                    variant="contained"
+                                    color="primary"
+                                    size="large"
+                                    fullWidth
+                                    sx={{
+                                        mb: 3,
                                         '&:hover': {
-                                            backgroundColor: 'transparent',
-                                            color: '#ff6f00',
+                                            transform: 'translateY(-2px)',
+                                            boxShadow: theme.shadows[6],
                                         },
                                     }}
                                 >
-                                    Зарегистрироваться
-                                </Button>
-                            </Typography>
-                        </Box>
-                    </form>
-                </Paper>
+                                    Войти
+                                </StyledButton>
+
+                                <Divider sx={{ my: 3 }} />
+
+                                <Box sx={{ textAlign: 'center' }}>
+                                    <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                                        Еще не зарегистрированы?{' '}
+                                        <Button
+                                            color="secondary"
+                                            onClick={() => navigate('/signup')}
+                                            sx={{
+                                                fontWeight: 600,
+                                                '&:hover': {
+                                                    textDecoration: 'underline',
+                                                },
+                                            }}
+                                        >
+                                            Создать аккаунт
+                                        </Button>
+                                    </Typography>
+                                </Box>
+                            </form>
+                        </StyledPaper>
+                    </Grid>
+                </Grid>
             </Container>
         </ThemeProvider>
     );

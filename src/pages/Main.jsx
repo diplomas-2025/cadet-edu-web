@@ -2,9 +2,6 @@ import React, { useEffect, useState } from 'react';
 import {
     Container,
     Typography,
-    List,
-    ListItem,
-    ListItemText,
     Paper,
     Box,
     TextField,
@@ -13,197 +10,460 @@ import {
     FormControl,
     InputLabel,
     Button,
+    Grid,
+    Chip,
+    Card,
+    CardContent,
+    CardActionArea,
+    Divider,
+    IconButton,
+    CircularProgress,
+    Avatar,
+    Badge
 } from '@mui/material';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
-import {getAllCourses, isTeacher} from '../data/Api';
+import { createTheme, ThemeProvider, styled, alpha } from '@mui/material/styles';
+import { getAllCourses, isTeacher } from '../data/Api';
 import { useNavigate } from 'react-router-dom';
+import MilitaryTechIcon from '@mui/icons-material/MilitaryTech';
+import SearchIcon from '@mui/icons-material/Search';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import SortIcon from '@mui/icons-material/Sort';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import GroupsIcon from '@mui/icons-material/Groups';
+import PersonIcon from '@mui/icons-material/Person';
+import {StyledButton} from "./AssignmentDetails";
 
-// Создаем кастомную тему
+// Современная тема с градиентами и стеком
 const theme = createTheme({
     palette: {
         primary: {
-            main: '#6a1b9a', // Фиолетовый
+            main: '#1a3e72',
+            light: '#4d6ea8',
         },
         secondary: {
-            main: '#ffab40', // Оранжевый
+            main: '#d32f2f',
+        },
+        background: {
+            default: '#f8f9fa',
+            paper: '#ffffff',
+        },
+        text: {
+            primary: '#1e293b',
+            secondary: '#64748b',
         },
     },
     typography: {
-        fontFamily: 'Roboto, sans-serif',
+        fontFamily: '"Inter", "Arial", sans-serif',
+        h4: {
+            fontWeight: 800,
+            letterSpacing: '-0.5px',
+        },
+        h5: {
+            fontWeight: 700,
+            letterSpacing: '-0.3px',
+        },
+        body1: {
+            fontSize: '1rem',
+            lineHeight: 1.6,
+        },
+        button: {
+            fontWeight: 600,
+            textTransform: 'none',
+        },
+    },
+    shape: {
+        borderRadius: 12,
+    },
+    components: {
+        MuiButton: {
+            styleOverrides: {
+                root: {
+                    borderRadius: 10,
+                    padding: '10px 20px',
+                    boxShadow: 'none',
+                    '&:hover': {
+                        boxShadow: 'none',
+                    },
+                },
+            },
+        },
     },
 });
 
+// Стилизованные компоненты
+const GradientCard = styled(Card)(({ theme }) => ({
+    background: `linear-gradient(135deg, ${alpha(theme.palette.primary.light, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`,
+    border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+    transition: 'all 0.3s ease',
+    '&:hover': {
+        transform: 'translateY(-5px)',
+        boxShadow: `0 10px 20px ${alpha(theme.palette.primary.main, 0.1)}`,
+        borderColor: alpha(theme.palette.primary.main, 0.3),
+    },
+}));
+
+const SearchField = styled(TextField)(({ theme }) => ({
+    '& .MuiOutlinedInput-root': {
+        borderRadius: 10,
+        backgroundColor: alpha(theme.palette.primary.main, 0.03),
+        '&:hover': {
+            backgroundColor: alpha(theme.palette.primary.main, 0.05),
+        },
+        '&.Mui-focused': {
+            backgroundColor: '#ffffff',
+            boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.2)}`,
+        },
+    },
+}));
+
+const StyledBadge = styled(Badge)(({ theme }) => ({
+    '& .MuiBadge-badge': {
+        right: 10,
+        top: 10,
+        padding: '0 4px',
+        backgroundColor: theme.palette.secondary.main,
+        color: theme.palette.common.white,
+    },
+}));
+
 const Main = () => {
     const navigate = useNavigate();
-    const [assignmentsList, setAssignmentsList] = useState([]);
-    const [filteredAssignments, setFilteredAssignments] = useState([]);
+    const [courses, setCourses] = useState([]);
+    const [filteredCourses, setFilteredCourses] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [sortBy, setSortBy] = useState('subject');
     const [filterByGroup, setFilterByGroup] = useState('');
     const [filterByInstructor, setFilterByInstructor] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [showFilters, setShowFilters] = useState(false);
 
-    // Загрузка данных
     useEffect(() => {
-        getAllCourses().then((response) => {
-            setAssignmentsList(response.data);
-            setFilteredAssignments(response.data);
-        });
+        setLoading(true);
+        getAllCourses()
+            .then((response) => {
+                setCourses(response.data);
+                setFilteredCourses(response.data);
+            })
+            .finally(() => setLoading(false));
     }, []);
 
-    // Обработка поиска, сортировки и фильтрации
     useEffect(() => {
-        let filtered = assignmentsList;
+        let filtered = [...courses];
 
-        // Поиск
         if (searchQuery) {
-            filtered = filtered.filter((assignment) => {
-                const searchLower = searchQuery.toLowerCase();
-                return (
-                    assignment.subject.name.toLowerCase().includes(searchLower) ||
-                    assignment.group.name.toLowerCase().includes(searchLower) ||
-                    assignment.instructor.fullName.toLowerCase().includes(searchLower)
-                );
-            });
+            const searchLower = searchQuery.toLowerCase();
+            filtered = filtered.filter((course) =>
+                course.subject.name.toLowerCase().includes(searchLower) ||
+                course.group.name.toLowerCase().includes(searchLower) ||
+                course.instructor.fullName.toLowerCase().includes(searchLower))
         }
 
-        // Фильтрация по группе
         if (filterByGroup) {
-            filtered = filtered.filter((assignment) => assignment.group.name === filterByGroup);
+            filtered = filtered.filter((course) => course.group.name === filterByGroup);
         }
 
-        // Фильтрация по преподавателю
         if (filterByInstructor) {
-            filtered = filtered.filter((assignment) => assignment.instructor.fullName === filterByInstructor);
+            filtered = filtered.filter((course) => course.instructor.fullName === filterByInstructor);
         }
 
-        // Сортировка
-        if (sortBy === 'subject') {
-            filtered.sort((a, b) => a.subject.name.localeCompare(b.subject.name));
-        } else if (sortBy === 'group') {
-            filtered.sort((a, b) => a.group.name.localeCompare(b.group.name));
-        } else if (sortBy === 'instructor') {
-            filtered.sort((a, b) => a.instructor.fullName.localeCompare(b.instructor.fullName));
-        }
+        filtered.sort((a, b) => {
+            if (sortBy === 'subject') return a.subject.name.localeCompare(b.subject.name);
+            if (sortBy === 'group') return a.group.name.localeCompare(b.group.name);
+            if (sortBy === 'instructor') return a.instructor.fullName.localeCompare(b.instructor.fullName);
+            return 0;
+        });
 
-        setFilteredAssignments(filtered);
-    }, [searchQuery, sortBy, filterByGroup, filterByInstructor, assignmentsList]);
+        setFilteredCourses(filtered);
+    }, [searchQuery, sortBy, filterByGroup, filterByInstructor, courses]);
 
-    // Получаем уникальные группы и преподавателей для фильтров
-    const uniqueGroups = [...new Set(assignmentsList.map((assignment) => assignment.group.name))];
-    const uniqueInstructors = [...new Set(assignmentsList.map((assignment) => assignment.instructor.fullName))];
+    const uniqueGroups = [...new Set(courses.map((course) => course.group.name))];
+    const uniqueInstructors = [...new Set(courses.map((course) => course.instructor.fullName))];
 
     return (
         <ThemeProvider theme={theme}>
-            <Container maxWidth="md">
-                {/* Заголовок и кнопка добавления */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 4 }}>
-                    <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', color: '#6a1b9a' }}>
-                        Список предметов
-                    </Typography>
-                    { isTeacher() &&
-                        <Button
+            <Container maxWidth="lg" sx={{ py: 4 }}>
+                {/* Заголовок и кнопка создания */}
+                <Box sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    mb: 4,
+                    flexWrap: 'wrap',
+                    gap: 2
+                }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Avatar sx={{
+                            bgcolor: 'primary.main',
+                            width: 56,
+                            height: 56,
+                            boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`
+                        }}>
+                            <MilitaryTechIcon sx={{ fontSize: 30 }} />
+                        </Avatar>
+                        <Box>
+                            <Typography variant="h4" component="h1">
+                                Дополнительное образование
+                            </Typography>
+                            <Typography variant="body1" color="text.secondary">
+                                Самарский кадетский корпус МВД РФ
+                            </Typography>
+                        </Box>
+                    </Box>
+
+                    {isTeacher() && (
+                        <StyledButton
                             variant="contained"
                             color="primary"
-                            onClick={() => navigate('/add-assignment')} // Перенаправление на страницу добавления
-                            sx={{ borderRadius: '8px', fontWeight: 'bold', padding: '10px 20px' }}
+                            startIcon={<AddCircleOutlineIcon />}
+                            onClick={() => navigate('/add-assignment')}
                         >
-                            Добавить предмет
+                            Создать курс
+                        </StyledButton>
+                    )}
+                </Box>
+
+                {/* Поиск и фильтры */}
+                <Paper sx={{
+                    p: 3,
+                    mb: 4,
+                    borderRadius: 3,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                    border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+                }}>
+                    <SearchField
+                        fullWidth
+                        variant="outlined"
+                        placeholder="Поиск курсов по названию, группе или преподавателю..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        InputProps={{
+                            startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />,
+                        }}
+                    />
+
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        mt: 2,
+                    }}>
+                        <Button
+                            startIcon={<FilterListIcon />}
+                            onClick={() => setShowFilters(!showFilters)}
+                            sx={{
+                                color: showFilters ? 'primary.main' : 'text.secondary',
+                            }}
+                        >
+                            Фильтры
                         </Button>
-                    }
-                </Box>
 
-                {/* Поиск */}
-                <TextField
-                    fullWidth
-                    label="Поиск"
-                    variant="outlined"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    sx={{ mb: 3 }}
-                />
-
-                {/* Фильтры и сортировка */}
-                <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-                    <FormControl fullWidth>
-                        <InputLabel>Сортировать по</InputLabel>
-                        <Select value={sortBy} onChange={(e) => setSortBy(e.target.value)} label="Сортировать по">
-                            <MenuItem value="subject">Предмет</MenuItem>
-                            <MenuItem value="group">Группа</MenuItem>
-                            <MenuItem value="instructor">Преподаватель</MenuItem>
-                        </Select>
-                    </FormControl>
-
-                    <FormControl fullWidth>
-                        <InputLabel>Фильтровать по группе</InputLabel>
-                        <Select
-                            value={filterByGroup}
-                            onChange={(e) => setFilterByGroup(e.target.value)}
-                            label="Фильтровать по группе"
-                        >
-                            <MenuItem value="">Все группы</MenuItem>
-                            {uniqueGroups.map((group) => (
-                                <MenuItem key={group} value={group}>
-                                    {group}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
-
-                    <FormControl fullWidth>
-                        <InputLabel>Фильтровать по преподавателю</InputLabel>
-                        <Select
-                            value={filterByInstructor}
-                            onChange={(e) => setFilterByInstructor(e.target.value)}
-                            label="Фильтровать по преподавателю"
-                        >
-                            <MenuItem value="">Все преподаватели</MenuItem>
-                            {uniqueInstructors.map((instructor) => (
-                                <MenuItem key={instructor} value={instructor}>
-                                    {instructor}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
-                </Box>
-
-                {/* Список предметов */}
-                <Paper elevation={6} sx={{ p: 3, borderRadius: '16px', backgroundColor: '#f5f5f5' }}>
-                    <List>
-                        {filteredAssignments.map((assignment) => (
-                            <ListItem
-                                key={assignment.id}
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <SortIcon color="action" sx={{ mr: 1 }} />
+                            <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
+                                Сортировка:
+                            </Typography>
+                            <Select
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value)}
+                                variant="standard"
+                                disableUnderline
                                 sx={{
-                                    mb: 2,
-                                    borderRadius: '8px',
-                                    backgroundColor: '#ffffff',
-                                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                                    '&:hover': {
-                                        boxShadow: '0 6px 8px rgba(0, 0, 0, 0.2)',
-                                    },
+                                    fontWeight: 500,
+                                    '& .MuiSelect-select': { paddingRight: '24px' }
                                 }}
-                                onClick={() => navigate(`/assignments/${assignment.id}`)}
                             >
-                                <ListItemText
-                                    primary={
-                                        <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#6a1b9a' }}>
-                                            {assignment.subject.name}
-                                        </Typography>
-                                    }
-                                    secondary={
-                                        <Box sx={{ mt: 1 }}>
-                                            <Typography variant="body1" sx={{ color: '#333' }}>
-                                                Группа: {assignment.group.name}
-                                            </Typography>
-                                            <Typography variant="body1" sx={{ color: '#333' }}>
-                                                Преподаватель: {assignment.instructor.fullName}
-                                            </Typography>
-                                        </Box>
-                                    }
-                                />
-                            </ListItem>
-                        ))}
-                    </List>
+                                <MenuItem value="subject">По названию</MenuItem>
+                                <MenuItem value="group">По группе</MenuItem>
+                                <MenuItem value="instructor">По преподавателю</MenuItem>
+                            </Select>
+                        </Box>
+                    </Box>
+
+                    {showFilters && (
+                        <Grid container spacing={2} sx={{ mt: 2 }}>
+                            <Grid item xs={12} md={6}>
+                                <FormControl fullWidth>
+                                    <InputLabel>Группа</InputLabel>
+                                    <Select
+                                        value={filterByGroup}
+                                        onChange={(e) => setFilterByGroup(e.target.value)}
+                                        label="Группа"
+                                        startAdornment={<GroupsIcon color="action" sx={{ mr: 1 }} />}
+                                    >
+                                        <MenuItem value="">Все группы</MenuItem>
+                                        {uniqueGroups.map((group) => (
+                                            <MenuItem key={group} value={group}>
+                                                {group}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </Grid>
+
+                            <Grid item xs={12} md={6}>
+                                <FormControl fullWidth>
+                                    <InputLabel>Преподаватель</InputLabel>
+                                    <Select
+                                        value={filterByInstructor}
+                                        onChange={(e) => setFilterByInstructor(e.target.value)}
+                                        label="Преподаватель"
+                                        startAdornment={<PersonIcon color="action" sx={{ mr: 1 }} />}
+                                    >
+                                        <MenuItem value="">Все преподаватели</MenuItem>
+                                        {uniqueInstructors.map((instructor) => (
+                                            <MenuItem key={instructor} value={instructor}>
+                                                {instructor}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </Grid>
+                        </Grid>
+                    )}
                 </Paper>
+
+                {/* Активные фильтры */}
+                {(filterByGroup || filterByInstructor) && (
+                    <Box sx={{ mb: 3, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                        {filterByGroup && (
+                            <Chip
+                                label={`Группа: ${filterByGroup}`}
+                                onDelete={() => setFilterByGroup('')}
+                                color="primary"
+                                variant="outlined"
+                                size="small"
+                                sx={{ borderRadius: 1 }}
+                            />
+                        )}
+                        {filterByInstructor && (
+                            <Chip
+                                label={`Преподаватель: ${filterByInstructor}`}
+                                onDelete={() => setFilterByInstructor('')}
+                                color="primary"
+                                variant="outlined"
+                                size="small"
+                                sx={{ borderRadius: 1 }}
+                            />
+                        )}
+                    </Box>
+                )}
+
+                {/* Список курсов */}
+                {loading ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
+                        <CircularProgress color="primary" size={60} thickness={4} />
+                    </Box>
+                ) : filteredCourses.length === 0 ? (
+                    <Paper sx={{
+                        p: 6,
+                        textAlign: 'center',
+                        borderRadius: 3,
+                        backgroundColor: alpha(theme.palette.primary.main, 0.03),
+                        border: `1px dashed ${alpha(theme.palette.primary.main, 0.2)}`,
+                    }}>
+                        <SearchIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
+                        <Typography variant="h6" color="text.secondary" gutterBottom>
+                            Ничего не найдено
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary">
+                            Попробуйте изменить параметры поиска или фильтры
+                        </Typography>
+                    </Paper>
+                ) : (
+                    <Grid container spacing={3}>
+                        {filteredCourses.map((course) => (
+                            <Grid item key={course.id}>
+                                <StyledBadge
+                                    badgeContent="Новый"
+                                    invisible={!course.isNew}
+                                    anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                >
+                                    <GradientCard>
+                                        <CardActionArea onClick={() => navigate(`/assignments/${course.id}`)}>
+                                            <CardContent sx={{ p: 3 }}>
+                                                <Box sx={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    mb: 2,
+                                                    gap: 1.5
+                                                }}>
+                                                    <Avatar
+                                                        sx={{
+                                                            bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                                            color: 'primary.main',
+                                                            width: 40,
+                                                            height: 40
+                                                        }}
+                                                    >
+                                                        {course.subject.name.charAt(0)}
+                                                    </Avatar>
+                                                    <Box>
+                                                        <Typography variant="subtitle1" component="h3" sx={{
+                                                            fontWeight: 700,
+                                                            lineHeight: 1.3
+                                                        }}>
+                                                            {course.subject.name}
+                                                        </Typography>
+                                                        <Typography variant="body2" color="text.secondary">
+                                                            {course.instructor.fullName}
+                                                        </Typography>
+                                                    </Box>
+                                                </Box>
+
+                                                <Box sx={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 2,
+                                                    mb: 2,
+                                                    flexWrap: 'wrap'
+                                                }}>
+                                                    <Chip
+                                                        label={course.group.name}
+                                                        size="small"
+                                                        color="primary"
+                                                        variant="outlined"
+                                                        sx={{ borderRadius: 1 }}
+                                                    />
+                                                    <Box sx={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        color: 'text.secondary'
+                                                    }}>
+                                                        <AccessTimeIcon sx={{ fontSize: 16, mr: 0.5 }} />
+                                                        <Typography variant="caption">
+                                                            {course.lessonsCount} занятий
+                                                        </Typography>
+                                                    </Box>
+                                                </Box>
+
+                                                <Divider sx={{
+                                                    my: 2,
+                                                    borderColor: alpha(theme.palette.primary.main, 0.1)
+                                                }} />
+
+                                                <Button
+                                                    fullWidth
+                                                    variant="outlined"
+                                                    color="primary"
+                                                    size="small"
+                                                    sx={{
+                                                        borderWidth: 1.5,
+                                                        '&:hover': {
+                                                            borderWidth: 1.5,
+                                                        }
+                                                    }}
+                                                >
+                                                    Подробнее о курсе
+                                                </Button>
+                                            </CardContent>
+                                        </CardActionArea>
+                                    </GradientCard>
+                                </StyledBadge>
+                            </Grid>
+                        ))}
+                    </Grid>
+                )}
             </Container>
         </ThemeProvider>
     );

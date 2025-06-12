@@ -9,20 +9,32 @@ import {
     Paper,
 } from '@mui/material';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-import {addMaterials} from "../data/Api";
+import { addMaterials } from '../data/Api';
 
-// Создаем кастомную тему
 const theme = createTheme({
     palette: {
         primary: {
-            main: '#6a1b9a', // Фиолетовый
+            main: '#1a3e72',
+            light: '#4d6ea8',
         },
         secondary: {
-            main: '#ffab40', // Оранжевый
+            main: '#d32f2f',
+        },
+        success: {
+            main: '#2e7d32',
+        },
+        background: {
+            default: '#f8f9fa',
         },
     },
     typography: {
-        fontFamily: 'Roboto, sans-serif',
+        fontFamily: '"Roboto", "Arial", sans-serif',
+        h4: {
+            fontWeight: 700,
+        },
+        h5: {
+            fontWeight: 600,
+        },
     },
 });
 
@@ -51,38 +63,69 @@ const AddMaterialScreen = () => {
 
     return (
         <ThemeProvider theme={theme}>
-            <Container maxWidth="md" sx={{ mt: 4 }}>
-                <Typography variant="h4" align="center" gutterBottom sx={{ fontWeight: 'bold', color: '#6a1b9a' }}>
-                    Добавить материал
+            <Container maxWidth="sm" sx={{ mt: 6 }}>
+                <Typography
+                    variant="h4"
+                    align="center"
+                    gutterBottom
+                    sx={{ fontWeight: 'bold', color: 'primary.main' }}
+                >
+                    Добавление материала
                 </Typography>
-                <Paper elevation={6} sx={{ p: 3, borderRadius: '16px', backgroundColor: '#f5f5f5' }}>
-                    <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+
+                <Paper
+                    elevation={6}
+                    sx={{
+                        mt: 4,
+                        p: { xs: 3, sm: 4 },
+                        borderRadius: 4,
+                        backgroundColor: '#f5f5f5',
+                        boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.05)',
+                    }}
+                >
+                    <Box
+                        component="form"
+                        onSubmit={handleSubmit}
+                        sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}
+                    >
                         <TextField
                             fullWidth
                             label="Название материала"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
+                            variant="outlined"
                             required
                         />
+
                         <TextField
                             fullWidth
                             label="Ссылка на файл"
                             value={fileUrl}
                             onChange={(e) => setFileUrl(e.target.value)}
+                            variant="outlined"
                             required
                         />
+
                         {error && (
                             <Typography color="error" align="center">
                                 {error}
                             </Typography>
                         )}
+
                         <Button
                             type="submit"
                             variant="contained"
                             color="primary"
-                            sx={{ borderRadius: '8px', fontWeight: 'bold', padding: '12px' }}
+                            size="large"
+                            sx={{
+                                mt: 1,
+                                borderRadius: 2,
+                                fontWeight: 'bold',
+                                textTransform: 'none',
+                                py: 1.5,
+                            }}
                         >
-                            Добавить
+                            Добавить материал
                         </Button>
                     </Box>
                 </Paper>

@@ -8,113 +8,306 @@ import {
     Box,
     Chip,
     Paper,
+    Grid,
+    Tabs,
+    Tab,
+    CircularProgress,
+    Badge,
+    IconButton,
+    List,
+    ListItem,
+    ListItemAvatar,
+    ListItemText,
+    Card,
+    CardContent,
+    LinearProgress
 } from '@mui/material';
-import { Logout as LogoutIcon } from '@mui/icons-material';
-import { TestResultCard } from './TestResultCard';
+import {
+    Logout as LogoutIcon,
+    School as AcademyIcon,
+    MilitaryTech as RankIcon,
+    Email as EmailIcon,
+    Person as PersonIcon,
+    Assignment as TestIcon,
+    Star as AchievementIcon,
+    Edit as EditIcon,
+    Notifications as NotificationsIcon
+} from '@mui/icons-material';
+import { createTheme, ThemeProvider, styled } from '@mui/material/styles';
 import { getCurrentUser, getTestResults } from '../data/Api';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { useNavigate } from 'react-router-dom';
 
 // Создаем кастомную тему
 const theme = createTheme({
     palette: {
         primary: {
-            main: '#6a1b9a', // Фиолетовый
+            main: '#1a3e72',
+            light: '#4d6ea8',
         },
         secondary: {
-            main: '#ffab40', // Оранжевый
+            main: '#d32f2f',
+        },
+        success: {
+            main: '#2e7d32',
+        },
+        background: {
+            default: '#f8f9fa',
+            paper: '#ffffff',
         },
     },
     typography: {
-        fontFamily: 'Roboto, sans-serif',
+        fontFamily: '"Roboto", "Arial", sans-serif',
+        h4: {
+            fontWeight: 700,
+        },
+        h5: {
+            fontWeight: 600,
+        },
     },
 });
 
-const ProfileScreen = () => {
-    const [user, setUser] = useState({
-        id: 0,
-        fullName: '',
-        email: '',
-        role: '',
-    });
-    const [testResults, setTestResults] = useState([]); // Состояние для результатов тестов
+// Стилизованные компоненты
+const ProgressCard = styled(Card)(({ theme }) => ({
+    borderLeft: `4px solid ${theme.palette.primary.main}`,
+    transition: 'all 0.3s ease',
+    '&:hover': {
+        transform: 'translateY(-2px)',
+        boxShadow: theme.shadows[4],
+    },
+}));
 
-    // Загрузка данных профиля и результатов тестов
+const AchievementBadge = styled(Badge)(({ theme }) => ({
+    '& .MuiBadge-badge': {
+        right: 10,
+        top: 10,
+        backgroundColor: theme.palette.success.main,
+        color: theme.palette.success.contrastText,
+    },
+}));
+
+const ProfileScreen = () => {
+    const [user, setUser] = useState(null);
+    const [testResults, setTestResults] = useState([]);
+    const [activeTab, setActiveTab] = useState(0);
+    const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
+
+    // Загрузка данных профиля
     useEffect(() => {
-        getCurrentUser().then((response) => {
-            setUser(response.data);
-        });
-        getTestResults().then((response) => {
-            setTestResults(response.data);
-        });
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const [userData, resultsData] = await Promise.all([
+                    getCurrentUser(),
+                    getTestResults()
+                ]);
+
+                setUser(userData.data);
+                setTestResults(resultsData.data);
+            } catch (error) {
+                console.error('Ошибка загрузки данных:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
     }, []);
 
-    // Обработчик выхода из аккаунта
     const handleLogout = () => {
-        localStorage.removeItem('token');
+        localStorage.removeItem('accessToken');
         window.location.reload();
     };
 
+    const handleTabChange = (event, newValue) => {
+        setActiveTab(newValue);
+    };
+
+    if (loading) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
+                <CircularProgress size={60} />
+            </Box>
+        );
+    }
+
+    if (!user) {
+        return <Typography>Ошибка загрузки профиля</Typography>;
+    }
+
+    const roleInRussian = user.role === 'INSTRUCTOR' ? 'Преподаватель' : 'Студент';
+    const completedTests = testResults.filter(t => t.score >= 70).length;
+    const averageScore = testResults.reduce((sum, test) => sum + test.score, 0) / testResults.length || 0;
+
     return (
         <ThemeProvider theme={theme}>
-            <Container maxWidth="md" sx={{ mt: 4 }}>
-                {/* Заголовок профиля */}
-                <Typography variant="h4" align="center" gutterBottom sx={{ fontWeight: 'bold', color: '#6a1b9a' }}>
-                    Профиль пользователя
-                </Typography>
+            <Container maxWidth="lg" sx={{ py: 4 }}>
+                {/* Основная информация профиля */}
+                <Card sx={{ mb: 4 }}>
+                    <CardContent sx={{ p: 4, position: 'relative' }}>
+                        <Grid container spacing={4} alignItems="center">
+                            <Grid item xs={12} md={8}>
+                                <Box sx={{ mb: 2 }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <RankIcon color="primary" />
+                                        <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
+                                            {user.fullName}
+                                        </Typography>
+                                    </Box>
 
-                {/* Информация о пользователе */}
-                <Paper elevation={6} sx={{ p: 3, mb: 3, borderRadius: '16px', backgroundColor: '#f5f5f5' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Avatar sx={{ width: 64, height: 64, bgcolor: 'primary.main' }}>
-                            {user.fullName.charAt(0)}
-                        </Avatar>
-                        <Box>
-                            <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#6a1b9a' }}>
-                                {user.fullName}
-                            </Typography>
-                            <Typography variant="body1" color="textSecondary">
-                                {user.email}
-                            </Typography>
-                            <Chip
-                                label={user.role === 'INSTRUCTOR' ? 'Преподаватель' : 'Студент'}
-                                color={user.role === 'INSTRUCTOR' ? 'primary' : 'default'}
-                                size="small"
-                                sx={{ mt: 1 }}
-                            />
-                        </Box>
-                    </Box>
+                                    <Chip
+                                        label={roleInRussian}
+                                        color="primary"
+                                        variant="outlined"
+                                        sx={{ mt: 1, mb: 2 }}
+                                    />
+                                </Box>
+
+                                <Grid container spacing={2}>
+                                    <Grid item xs={12} sm={6}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                            <EmailIcon color="primary" />
+                                            <Typography variant="body1">
+                                                {user.email}
+                                            </Typography>
+                                        </Box>
+                                    </Grid>
+
+                                </Grid>
+
+                                <Box sx={{ mt: 3 }}>
+                                    <Button
+                                        variant="contained"
+                                        color="secondary"
+                                        startIcon={<LogoutIcon />}
+                                        onClick={handleLogout}
+                                        sx={{ borderRadius: theme.shape.borderRadius }}
+                                    >
+                                        Выйти из системы
+                                    </Button>
+                                </Box>
+                            </Grid>
+                        </Grid>
+                    </CardContent>
+                </Card>
+
+                {/* Статистика */}
+                <Grid container spacing={3} sx={{ mb: 4 }}>
+                    <Grid item xs={12} md={4}>
+                        <ProgressCard>
+                            <CardContent>
+                                <Typography variant="h6" color="textSecondary" gutterBottom>
+                                    Пройдено тестов
+                                </Typography>
+                                <Typography variant="h3" component="div" sx={{ fontWeight: 700 }}>
+                                    {completedTests}
+                                    <Typography variant="body2" color="textSecondary" component="span">
+                                        /{testResults.length}
+                                    </Typography>
+                                </Typography>
+                                <LinearProgress
+                                    variant="determinate"
+                                    value={(completedTests / testResults.length) * 100 || 0}
+                                    sx={{ height: 8, mt: 2, borderRadius: 4 }}
+                                />
+                            </CardContent>
+                        </ProgressCard>
+                    </Grid>
+
+                    <Grid item xs={12} md={4}>
+                        <ProgressCard>
+                            <CardContent>
+                                <Typography variant="h6" color="textSecondary" gutterBottom>
+                                    Средний балл
+                                </Typography>
+                                <Typography variant="h3" component="div" sx={{ fontWeight: 700 }}>
+                                    {averageScore.toFixed(1)}%
+                                </Typography>
+                                <LinearProgress
+                                    variant="determinate"
+                                    value={averageScore || 0}
+                                    sx={{ height: 8, mt: 2, borderRadius: 4 }}
+                                    color={averageScore >= 70 ? 'success' : 'secondary'}
+                                />
+                            </CardContent>
+                        </ProgressCard>
+                    </Grid>
+
+                </Grid>
+
+                {/* Табы с контентом */}
+                <Paper sx={{ mb: 3, borderRadius: theme.shape.borderRadius }}>
+                    <Tabs
+                        value={activeTab}
+                        onChange={handleTabChange}
+                        variant="scrollable"
+                        scrollButtons="auto"
+                    >
+                        <Tab label="Результаты тестов" icon={<TestIcon />} iconPosition="start" />
+                    </Tabs>
                 </Paper>
 
-                {/* Кнопка выхода */}
-                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
-                    <Button
-                        variant="contained"
-                        color="secondary"
-                        startIcon={<LogoutIcon />}
-                        onClick={handleLogout}
-                        sx={{ borderRadius: '8px', fontWeight: 'bold' }}
-                    >
-                        Выйти из аккаунта
-                    </Button>
+                {/* Содержимое табов */}
+                <Box sx={{ mb: 4 }}>
+                    {activeTab === 0 && (
+                        <>
+                            {testResults.length > 0 ? (
+                                <List sx={{ width: '100%' }}>
+                                    {testResults.map((result) => (
+                                        <Card key={result.id} sx={{ mb: 2 }}>
+                                            <ListItem>
+                                                <ListItemAvatar>
+                                                    <Avatar sx={{
+                                                        bgcolor: result.score >= 70 ? 'success.main' : 'secondary.main',
+                                                        width: 56,
+                                                        height: 56
+                                                    }}>
+                                                        {result.score}%
+                                                    </Avatar>
+                                                </ListItemAvatar>
+
+                                                <ListItemText
+                                                    primary={result.test.title}
+                                                    primaryTypographyProps={{ fontWeight: 'bold' }}
+                                                    sx={{
+                                                        paddingLeft: 4,
+                                                    }}
+                                                />
+                                                <Button
+                                                    size="small"
+                                                    onClick={() => navigate(`/assignments/${result.test.assignmentId}`)}
+                                                >
+                                                    Подробнее
+                                                </Button>
+                                            </ListItem>
+                                        </Card>
+                                    ))}
+                                </List>
+                            ) : (
+                                <Paper sx={{ p: 4, textAlign: 'center' }}>
+                                    <Typography variant="body1" color="textSecondary">
+                                        Нет результатов тестов
+                                    </Typography>
+                                </Paper>
+                            )}
+                        </>
+                    )}
+
+                    {activeTab === 2 && (
+                        <Paper sx={{ p: 4, textAlign: 'center' }}>
+                            <Typography variant="body1" color="textSecondary">
+                                График активности и история действий будут отображаться здесь
+                            </Typography>
+                            <Button
+                                variant="outlined"
+                                sx={{ mt: 2 }}
+                                onClick={() => navigate('/activity')}
+                            >
+                                Просмотреть полную активность
+                            </Button>
+                        </Paper>
+                    )}
                 </Box>
-
-                <Divider sx={{ mb: 4 }} />
-
-                {/* Список результатов тестов */}
-                <Typography variant="h5" align="center" gutterBottom sx={{ fontWeight: 'bold', color: '#6a1b9a' }}>
-                    Результаты тестов
-                </Typography>
-                {testResults.length > 0 ? (
-                    <Box>
-                        {testResults.map((result) => (
-                            <TestResultCard key={result.id} result={result} />
-                        ))}
-                    </Box>
-                ) : (
-                    <Typography variant="body1" align="center" color="textSecondary">
-                        Нет результатов тестов.
-                    </Typography>
-                )}
             </Container>
         </ThemeProvider>
     );

@@ -1,7 +1,7 @@
 // api.js
 import axios from 'axios';
 
-const API_BASE_URL = 'https://spotdiff.ru/polytech-api';
+const API_BASE_URL = 'https://spotdiff.ru/cadet-edu-api';
 
 const api = axios.create({
     baseURL: API_BASE_URL,

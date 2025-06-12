@@ -1,64 +1,109 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Container, Typography, Paper, Box } from '@mui/material';
+import {
+    Container,
+    Typography,
+    Paper,
+    Box,
+    CircularProgress,
+} from '@mui/material';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-import {getLessonById} from "../data/Api";
+import { getLessonById } from '../data/Api';
 
-// Создаем кастомную тему
 const theme = createTheme({
     palette: {
         primary: {
-            main: '#6a1b9a', // Фиолетовый
+            main: '#1a3e72',
         },
         secondary: {
-            main: '#ffab40', // Оранжевый
+            main: '#ffab40',
+        },
+        background: {
+            default: '#f8f9fa',
         },
     },
     typography: {
-        fontFamily: 'Roboto, sans-serif',
+        fontFamily: 'Roboto, Arial, sans-serif',
+        h4: {
+            fontWeight: 700,
+        },
     },
 });
 
 export const LessonDetails = () => {
     const { lessonId } = useParams();
     const [lessonData, setLessonData] = useState(null);
+    const [loading, setLoading] = useState(true);
 
-    // Загрузка данных (замените на реальный запрос к API)
     useEffect(() => {
-        // Здесь должен быть запрос к API для получения данных по lessonId
-        // Например:
-        // fetchLessonDetails(lessonId).then(data => setLessonData(data));
-
-        // Используем пример данных
-        getLessonById(lessonId).then((response) => {
-            setLessonData(response.data);
-        });
+        getLessonById(lessonId)
+            .then((response) => {
+                setLessonData(response.data);
+            })
+            .finally(() => {
+                setLoading(false);
+            });
     }, [lessonId]);
-
-    if (!lessonData) {
-        return <Typography>Загрузка...</Typography>;
-    }
 
     return (
         <ThemeProvider theme={theme}>
-            <Container maxWidth="md">
-                <Typography variant="h4" align="center" gutterBottom sx={{ fontWeight: 'bold', color: '#6a1b9a', mt: 4 }}>
-                    {lessonData.title}
-                </Typography>
+            <Container maxWidth="md" sx={{ mt: 6 }}>
+                {loading ? (
+                    <Box display="flex" justifyContent="center" mt={6}>
+                        <CircularProgress color="primary" />
+                    </Box>
+                ) : lessonData ? (
+                    <>
+                        <Typography
+                            variant="h4"
+                            align="center"
+                            gutterBottom
+                            sx={{ fontWeight: 'bold', color: 'primary.main' }}
+                        >
+                            {lessonData.title}
+                        </Typography>
 
-                {/* Контент урока */}
-                <Paper elevation={6} sx={{ p: 3, mt: 2, borderRadius: '16px', backgroundColor: '#f5f5f5' }}>
-                    <Box
-                        sx={{
-                            '& h2': { fontSize: '1.5rem', fontWeight: 'bold', color: '#6a1b9a', mt: 2 },
-                            '& h3': { fontSize: '1.25rem', fontWeight: 'bold', color: '#6a1b9a', mt: 2 },
-                            '& p': { fontSize: '1rem', color: '#333', mt: 1 },
-                            '& ul': { pl: 2, mt: 1 },
-                            '& li': { fontSize: '1rem', color: '#333' },
-                        }}
-                        dangerouslySetInnerHTML={{ __html: lessonData.content }}
-                    />
-                </Paper>
+                        <Paper
+                            elevation={6}
+                            sx={{
+                                p: { xs: 3, sm: 4 },
+                                mt: 4,
+                                borderRadius: 4,
+                                backgroundColor: '#f5f5f5',
+                                boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.05)',
+                            }}
+                        >
+                            <Box
+                                sx={{
+                                    fontSize: '1rem',
+                                    color: '#333',
+                                    lineHeight: 1.7,
+                                    '& h1, h2, h3, h4': {
+                                        color: 'primary.main',
+                                        fontWeight: 600,
+                                        marginTop: 2,
+                                    },
+                                    '& p': {
+                                        marginTop: 1,
+                                        marginBottom: 1,
+                                    },
+                                    '& ul': {
+                                        paddingLeft: '1.5rem',
+                                        marginTop: 1,
+                                    },
+                                    '& li': {
+                                        marginBottom: '0.5rem',
+                                    },
+                                }}
+                                dangerouslySetInnerHTML={{ __html: lessonData.content }}
+                            />
+                        </Paper>
+                    </>
+                ) : (
+                    <Typography color="error" align="center">
+                        Не удалось загрузить лекцию
+                    </Typography>
+                )}
             </Container>
         </ThemeProvider>
     );
